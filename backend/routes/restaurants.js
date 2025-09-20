@@ -5,7 +5,7 @@ const {
   createRestaurant,
   updateRestaurant,
   deleteRestaurant
-} = require('../controllers/restaurantController');
+} = require('../controllers/resturantControllers');
 const { protect } = require('../middleware/auth');
 
 const router = express.Router();

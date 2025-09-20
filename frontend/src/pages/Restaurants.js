@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getRestaurants } from '../utils/api';
-import RestaurantCard from '../components/RestaurantCard'; // Default import
-import SearchFilter from '../components/SearchFilter'; // Default import
+import RestaurantCard from '../components/RestaurantCard';
+import SearchFilter from '../components/SearchFilter';
 
 const Restaurants = () => {
   const [restaurants, setRestaurants] = useState([]);
@@ -15,22 +15,22 @@ const Restaurants = () => {
   });
 
   useEffect(() => {
-    loadRestaurants();
-  }, [filters]);
+    const loadRestaurants = async () => {
+      try {
+        setLoading(true);
+        const data = await getRestaurants(filters);
+        setRestaurants(Array.isArray(data.restaurants) ? data.restaurants : []);
+        setError('');
+      } catch (err) {
+        setError('Failed to load restaurants');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const loadRestaurants = async () => {
-    try {
-      setLoading(true);
-      const data = await getRestaurants(filters);
-      setRestaurants(data);
-      setError('');
-    } catch (err) {
-      setError('Failed to load restaurants');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    loadRestaurants();
+  }, [filters]); // ✅ only filters as dependency
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
@@ -38,11 +38,9 @@ const Restaurants = () => {
 
   if (loading) {
     return (
-      <div className="container mt-4">
-        <div className="text-center">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
+      <div className="container mt-4 text-center">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
         </div>
       </div>
     );
@@ -53,7 +51,7 @@ const Restaurants = () => {
       <h1 className="section-title">Restaurants</h1>
       
       <SearchFilter onFilterChange={handleFilterChange} />
-      
+
       {error && (
         <div className="alert alert-danger" role="alert">
           {error}
@@ -66,7 +64,7 @@ const Restaurants = () => {
             <p>No restaurants found. Try adjusting your filters.</p>
           </div>
         ) : (
-          restaurants.map(restaurant => (
+          restaurants.map((restaurant) => (
             <div key={restaurant._id} className="col-md-4">
               <RestaurantCard restaurant={restaurant} />
             </div>
@@ -77,5 +75,4 @@ const Restaurants = () => {
   );
 };
 
-// Make sure to export as default
 export default Restaurants;
