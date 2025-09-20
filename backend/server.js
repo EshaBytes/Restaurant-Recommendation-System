@@ -2,10 +2,11 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
-
+const connectDB = require('./config/database');
 // Load environment variables
 dotenv.config();
-
+// Connect to MongoDB
+connectDB();
 const app = express();
 
 // Middleware
@@ -20,6 +21,10 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/restauran
 })
 .then(() => console.log('MongoDB connected successfully'))
 .catch(err => console.log(err));
+// Test endpoint
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'API is working!' });
+});
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));

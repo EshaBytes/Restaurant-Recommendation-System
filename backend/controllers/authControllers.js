@@ -1,12 +1,17 @@
-const express = require('express');
-const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { protect } = require('../middleware/auth'); // Import the middleware
+const jwt = require('jsonwebtoken');
 
-const router = express.Router();
+// Generate JWT Token
+const generateToken = (userId) => {
+  return jwt.sign(
+    { userId },
+    process.env.JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+};
 
-// Register
-router.post('/register', async (req, res) => {
+// Register User
+exports.register = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
@@ -26,14 +31,14 @@ router.post('/register', async (req, res) => {
     }
 
     // Check if user already exists
-    const existingUser = await User.findOne({ 
-      $or: [{ email }, { username }] 
+    const existingUser = await User.findOne({
+      $or: [{ email }, { username }]
     });
-    
+
     if (existingUser) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'User already exists with this email or username' 
+        message: 'User already exists with this email or username'
       });
     }
 
@@ -41,12 +46,8 @@ router.post('/register', async (req, res) => {
     const user = new User({ username, email, password });
     await user.save();
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: user._id }, 
-      process.env.JWT_SECRET, 
-      { expiresIn: '7d' }
-    );
+    // Generate token
+    const token = generateToken(user._id);
 
     res.status(201).json({
       success: true,
@@ -57,27 +58,18 @@ router.post('/register', async (req, res) => {
         email: user.email
       }
     });
+
   } catch (error) {
     console.error('Registration error:', error);
-    
-    // Handle validation errors
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(val => val.message);
-      return res.status(400).json({
-        success: false,
-        message: messages.join(', ')
-      });
-    }
-    
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: 'Server error during registration' 
+      message: 'Server error during registration'
     });
   }
-});
+};
 
-// Login
-router.post('/login', async (req, res) => {
+// Login User
+exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -92,27 +84,23 @@ router.post('/login', async (req, res) => {
     // Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: 'Invalid credentials' 
+        message: 'Invalid credentials'
       });
     }
 
     // Check password
     const isPasswordValid = await user.correctPassword(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: 'Invalid credentials' 
+        message: 'Invalid credentials'
       });
     }
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: user._id }, 
-      process.env.JWT_SECRET, 
-      { expiresIn: '7d' }
-    );
+    // Generate token
+    const token = generateToken(user._id);
 
     res.json({
       success: true,
@@ -123,27 +111,23 @@ router.post('/login', async (req, res) => {
         email: user.email
       }
     });
+
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: 'Server error during login' 
+      message: 'Server error during login'
     });
   }
-});
+};
 
-// Get current user (protected route using middleware)
-router.get('/me', protect, async (req, res) => {
+// Get Current User
+exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.userId).select('-password');
-    
     res.json({
       success: true,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email
-      }
+      user
     });
   } catch (error) {
     console.error('Get user error:', error);
@@ -152,6 +136,4 @@ router.get('/me', protect, async (req, res) => {
       message: 'Server error'
     });
   }
-});
-
-module.exports = router;
+};
