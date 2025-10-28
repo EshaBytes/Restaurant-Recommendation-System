@@ -1,177 +1,187 @@
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
   FiHome, 
   FiCompass,
   FiUser, 
   FiHeart, 
-  FiCalendar,
   FiLogOut,
   FiMenu,
   FiX,
-  FiMapPin
+  FiSearch
 } from 'react-icons/fi';
-import { 
-  MdRestaurant
-} from 'react-icons/md';
+import { MdRestaurant } from 'react-icons/md';
 import '../styles/Navbar.css';
 
 const Navbar = () => {
   const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const userMenuRef = useRef(null);
+
+  console.log('🔐 Navbar Auth State:', { 
+    currentUser, 
+    hasUser: !!currentUser,
+    userEmail: currentUser?.email 
+  });
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleLogout = () => {
+    console.log('Logging out...');
     logout();
     setIsMenuOpen(false);
+    setIsUserMenuOpen(false);
+    navigate('/');
+  };
+
+  const handleLogin = () => {
+    console.log('Navigating to login...');
+    navigate('/login');
+    setIsMenuOpen(false);
+  };
+
+  const handleSignup = () => {
+    console.log('Navigating to register...');
+    navigate('/register');
+    setIsMenuOpen(false);
+  };
+
+  const handleProfile = () => {
+    navigate('/profile');
+    setIsMenuOpen(false);
+    setIsUserMenuOpen(false);
   };
 
   const isActiveLink = (path) => {
     return location.pathname === path;
   };
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
-
-  const closeMenu = () => {
-    setIsMenuOpen(false);
-  };
+  const navLinks = [
+    { path: '/', icon: FiHome, label: 'Home' },
+    { path: '/restaurants', icon: MdRestaurant, label: 'Restaurants' },
+    { path: '/discover', icon: FiCompass, label: 'Discover' }
+  ];
 
   return (
-    <nav className="navbar">
+    <nav className={`navbar ${isScrolled ? 'scrolled' : ''}`}>
       <div className="nav-container">
         {/* Logo */}
-        <Link to="/" className="nav-logo" onClick={closeMenu}>
+        <Link to="/" className="nav-logo" onClick={() => setIsMenuOpen(false)}>
           <div className="logo-icon">
             <MdRestaurant />
           </div>
           <span className="logo-text">FoodFinder</span>
         </Link>
 
-        {/* Navigation Links */}
+        {/* Desktop Navigation */}
         <div className={`nav-menu ${isMenuOpen ? 'active' : ''}`}>
           <div className="nav-links">
-            <Link 
-              to="/" 
-              className={`nav-link ${isActiveLink('/') ? 'active' : ''}`}
-              onClick={closeMenu}
-            >
-              <FiHome className="nav-icon" />
-              <span className="nav-text">Home</span>
-            </Link>
-            <Link 
-              to="/discover" 
-              className={`nav-link ${isActiveLink('/discover') ? 'active' : ''}`}
-              onClick={closeMenu}
-            >
-              <FiCompass className="nav-icon" />
-              <span className="nav-text">Discover</span>
-            </Link>
-            <Link 
-              to="/restaurants" 
-              className={`nav-link ${isActiveLink('/restaurants') ? 'active' : ''}`}
-              onClick={closeMenu}
-            >
-              <MdRestaurant className="nav-icon" />
-              <span className="nav-text">Restaurants</span>
-            </Link>
-            <Link 
-              to="/nearby" 
-              className={`nav-link ${isActiveLink('/nearby') ? 'active' : ''}`}
-              onClick={closeMenu}
-            >
-              <FiMapPin className="nav-icon" />
-              <span className="nav-text">Nearby</span>
-            </Link>
+            {navLinks.map((link) => {
+              const IconComponent = link.icon;
+              return (
+                <Link 
+                  key={link.path}
+                  to={link.path} 
+                  className={`nav-link ${isActiveLink(link.path) ? 'active' : ''}`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <IconComponent className="nav-icon" />
+                  <span>{link.label}</span>
+                </Link>
+              );
+            })}
           </div>
 
-          {/* User Actions */}
+          {/* Auth Section - FIXED: Only show one state */}
           <div className="nav-actions">
             {currentUser ? (
-              <div className="user-section">
-                <Link 
-                  to="/profile" 
-                  className="profile-btn"
-                  onClick={closeMenu}
+              // Logged In State
+              <div className="user-section" ref={userMenuRef}>
+                <div 
+                  className="user-trigger"
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 >
                   <div className="user-avatar">
-                    {currentUser.displayName?.charAt(0)?.toUpperCase() || 
+                    {currentUser.name?.charAt(0)?.toUpperCase() || 
                      currentUser.email?.charAt(0)?.toUpperCase() || 'U'}
                   </div>
                   <span className="user-name">
-                    {currentUser.displayName || 'Profile'}
+                    {currentUser.name || 'User'}
                   </span>
-                </Link>
-                <div className="dropdown-menu">
-                  <Link 
-                    to="/profile" 
-                    className="dropdown-item"
-                    onClick={closeMenu}
-                  >
-                    <FiUser className="dropdown-icon" />
-                    <span>My Profile</span>
-                  </Link>
-                  <Link 
-                    to="/favorites" 
-                    className="dropdown-item"
-                    onClick={closeMenu}
-                  >
-                    <FiHeart className="dropdown-icon" />
-                    <span>Favorites</span>
-                  </Link>
-                  <Link 
-                    to="/reservations" 
-                    className="dropdown-item"
-                    onClick={closeMenu}
-                  >
-                    <FiCalendar className="dropdown-icon" />
-                    <span>Reservations</span>
-                  </Link>
-                  <div className="dropdown-divider"></div>
-                  <button 
-                    onClick={handleLogout}
-                    className="dropdown-item logout-btn"
-                  >
-                    <FiLogOut className="dropdown-icon" />
-                    <span>Logout</span>
-                  </button>
+                  <div className={`chevron ${isUserMenuOpen ? 'open' : ''}`}>
+                    ▼
+                  </div>
                 </div>
+
+                {isUserMenuOpen && (
+                  <div className="dropdown-menu">
+                    <button onClick={handleProfile} className="dropdown-item">
+                      <FiUser className="dropdown-icon" />
+                      <span>Profile</span>
+                    </button>
+                    <div className="dropdown-divider"></div>
+                    <button onClick={handleLogout} className="dropdown-item logout">
+                      <FiLogOut className="dropdown-icon" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
+              // Logged Out State
               <div className="auth-buttons">
-                <Link 
-                  to="/login" 
-                  className="auth-btn login-btn"
-                  onClick={closeMenu}
-                >
+                <button onClick={handleLogin} className="auth-btn login-btn">
                   Login
-                </Link>
-                <Link 
-                  to="/register" 
-                  className="auth-btn signup-btn"
-                  onClick={closeMenu}
-                >
+                </button>
+                <button onClick={handleSignup} className="auth-btn signup-btn">
                   Sign Up
-                </Link>
+                </button>
               </div>
             )}
           </div>
         </div>
 
         {/* Mobile Menu Toggle */}
-        <button 
-          className={`nav-toggle ${isMenuOpen ? 'active' : ''}`}
-          onClick={toggleMenu}
-          aria-label="Toggle navigation"
-        >
-          {isMenuOpen ? <FiX /> : <FiMenu />}
-        </button>
+        <div className="mobile-actions">
+          {!currentUser && (
+            <button onClick={handleLogin} className="mobile-auth-btn">
+              Login
+            </button>
+          )}
+          <button 
+            className="nav-toggle"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            {isMenuOpen ? <FiX /> : <FiMenu />}
+          </button>
+        </div>
 
         {/* Mobile Menu Overlay */}
         {isMenuOpen && (
-          <div className="nav-overlay" onClick={closeMenu}></div>
+          <div className="nav-overlay" onClick={() => setIsMenuOpen(false)}></div>
         )}
       </div>
     </nav>

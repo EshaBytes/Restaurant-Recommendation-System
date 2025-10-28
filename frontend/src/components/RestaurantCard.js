@@ -1,163 +1,141 @@
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import '../styles/Navbar.css';
+import React from 'react';
+import { Link } from 'react-router-dom';
 
-const Navbar = () => {
-  const { currentUser, logout } = useAuth();
-  const location = useLocation();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+const RestaurantCard = ({ restaurant }) => {
+  if (!restaurant) {
+    return null;
+  }
 
-  const handleLogout = () => {
-    logout();
-    setIsMenuOpen(false);
+  // Safely extract restaurant data with fallbacks
+  const {
+    _id,
+    name = 'Restaurant Name',
+    cuisine = 'Cuisine not specified',
+    rating = 0,
+    priceLevel = 2,
+    image,
+    address = {},
+    description = 'No description available',
+    zomatoData = {}
+  } = restaurant;
+
+  // Generate star rating display
+  const renderRating = () => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 !== 0;
+
+    for (let i = 0; i < fullStars; i++) {
+      stars.push(<span key={i} className="star full">⭐</span>);
+    }
+
+    if (hasHalfStar) {
+      stars.push(<span key="half" className="star half">⭐</span>);
+    }
+
+    const emptyStars = 5 - Math.ceil(rating);
+    for (let i = 0; i < emptyStars; i++) {
+      stars.push(<span key={`empty-${i}`} className="star empty">☆</span>);
+    }
+
+    return (
+      <div className="rating-display">
+        {stars}
+        <span className="rating-text">({rating.toFixed(1)})</span>
+      </div>
+    );
   };
 
-  const isActiveLink = (path) => {
-    return location.pathname === path;
+  // Generate price indicator
+  const renderPriceLevel = () => {
+    return '💲'.repeat(priceLevel) + '💲'.repeat(4 - priceLevel).replace(/💲/g, '⚪');
   };
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
-
-  const closeMenu = () => {
-    setIsMenuOpen(false);
+  // Get location text
+  const getLocationText = () => {
+    if (address.city && address.locality) {
+      return `${address.locality}, ${address.city}`;
+    }
+    if (zomatoData.locality) {
+      return zomatoData.locality;
+    }
+    if (address.city) {
+      return address.city;
+    }
+    return 'Location not specified';
   };
 
   return (
-    <nav className="navbar">
-      <div className="nav-container">
-        {/* Logo */}
-        <Link to="/" className="nav-logo" onClick={closeMenu}>
-          <div className="logo-icon">🍽️</div>
-          <span className="logo-text">FoodFinder</span>
-        </Link>
-
-        {/* Navigation Links */}
-        <div className={`nav-menu ${isMenuOpen ? 'active' : ''}`}>
-          <div className="nav-links">
-            <Link 
-              to="/" 
-              className={`nav-link ${isActiveLink('/') ? 'active' : ''}`}
-              onClick={closeMenu}
-            >
-              <span className="nav-icon">🏠</span>
-              Home
-            </Link>
-            <Link 
-              to="/restaurants" 
-              className={`nav-link ${isActiveLink('/restaurants') ? 'active' : ''}`}
-              onClick={closeMenu}
-            >
-              <span className="nav-icon">🔍</span>
-              Discover
-            </Link>
-            <Link 
-              to="/trending" 
-              className={`nav-link ${isActiveLink('/trending') ? 'active' : ''}`}
-              onClick={closeMenu}
-            >
-              <span className="nav-icon">📈</span>
-              Trending
-            </Link>
-            <Link 
-              to="/deals" 
-              className={`nav-link ${isActiveLink('/deals') ? 'active' : ''}`}
-              onClick={closeMenu}
-            >
-              <span className="nav-icon">🎯</span>
-              Deals
-            </Link>
-          </div>
-
-          {/* User Actions */}
-          <div className="nav-actions">
-            {currentUser ? (
-              <div className="user-section">
-                <Link 
-                  to="/profile" 
-                  className="profile-btn"
-                  onClick={closeMenu}
-                >
-                  <div className="user-avatar">
-                    {currentUser.displayName?.charAt(0)?.toUpperCase() || 
-                     currentUser.email?.charAt(0)?.toUpperCase() || 'U'}
-                  </div>
-                  <span className="user-name">
-                    {currentUser.displayName || 'Profile'}
-                  </span>
-                </Link>
-                <div className="dropdown-menu">
-                  <Link 
-                    to="/profile" 
-                    className="dropdown-item"
-                    onClick={closeMenu}
-                  >
-                    👤 My Profile
-                  </Link>
-                  <Link 
-                    to="/favorites" 
-                    className="dropdown-item"
-                    onClick={closeMenu}
-                  >
-                    ❤️ Favorites
-                  </Link>
-                  <Link 
-                    to="/reservations" 
-                    className="dropdown-item"
-                    onClick={closeMenu}
-                  >
-                    📅 Reservations
-                  </Link>
-                  <div className="dropdown-divider"></div>
-                  <button 
-                    onClick={handleLogout}
-                    className="dropdown-item logout-btn"
-                  >
-                    🚪 Logout
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="auth-buttons">
-                <Link 
-                  to="/login" 
-                  className="auth-btn login-btn"
-                  onClick={closeMenu}
-                >
-                  Login
-                </Link>
-                <Link 
-                  to="/register" 
-                  className="auth-btn signup-btn"
-                  onClick={closeMenu}
-                >
-                  Sign Up
-                </Link>
+    <div className="restaurant-card">
+      <Link to={`/restaurants/${_id}`} className="card-link">
+        {/* Restaurant Image */}
+        <div className="card-image-container">
+          <img 
+            src={image || '/default-restaurant.jpg'} 
+            alt={name}
+            className="restaurant-image"
+            onError={(e) => {
+              e.target.src = '/default-restaurant.jpg';
+            }}
+          />
+          <div className="card-overlay">
+            <div className="price-badge">
+              {renderPriceLevel()}
+            </div>
+            {zomatoData.hasOnlineDelivery && (
+              <div className="delivery-badge">
+                🚗 Delivery
               </div>
             )}
           </div>
         </div>
 
-        {/* Mobile Menu Toggle */}
-        <button 
-          className={`nav-toggle ${isMenuOpen ? 'active' : ''}`}
-          onClick={toggleMenu}
-          aria-label="Toggle navigation"
-        >
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
+        {/* Card Content */}
+        <div className="card-content">
+          <div className="card-header">
+            <h3 className="restaurant-name">{name}</h3>
+            <div className="cuisine-badge">
+              {cuisine}
+            </div>
+          </div>
 
-        {/* Mobile Menu Overlay */}
-        {isMenuOpen && (
-          <div className="nav-overlay" onClick={closeMenu}></div>
-        )}
-      </div>
-    </nav>
+          <div className="card-body">
+            <p className="restaurant-description">
+              {description.length > 100 
+                ? `${description.substring(0, 100)}...` 
+                : description
+              }
+            </p>
+
+            <div className="restaurant-location">
+              📍 {getLocationText()}
+            </div>
+
+            {zomatoData.averageCostForTwo && (
+              <div className="cost-for-two">
+                Avg. Cost for Two: {zomatoData.currency} {zomatoData.averageCostForTwo}
+              </div>
+            )}
+          </div>
+
+          <div className="card-footer">
+            <div className="rating-section">
+              {renderRating()}
+              {zomatoData.votes > 0 && (
+                <span className="vote-count">({zomatoData.votes} votes)</span>
+              )}
+            </div>
+
+            <div className="features">
+              {zomatoData.hasTableBooking && (
+                <span className="feature-tag">📅 Book Table</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </Link>
+    </div>
   );
 };
 
-export default Navbar;
+export default RestaurantCard;

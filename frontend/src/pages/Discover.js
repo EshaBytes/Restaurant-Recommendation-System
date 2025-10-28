@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { searchRestaurants, getRecommendations } from '../services/api';
+import { searchRestaurants, getRecommendations } from '../utils/api';
 import RestaurantCard from '../components/RestaurantCard';
 import '../styles/Discover.css';
 
