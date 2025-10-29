@@ -36,14 +36,35 @@ const SearchFilter = ({ onFilterChange, currentFilters, onClearFilters }) => {
     }
   };
 
+  const removeFilter = (filterName) => {
+    const newFilters = { ...filters, [filterName]: '' };
+    setFilters(newFilters);
+    onFilterChange(newFilters);
+  };
+
   const hasActiveFilters = filters.cuisine || filters.minRating || filters.maxPrice || filters.search;
 
-  // Common cuisines from your dataset
+  // Expanded cuisine options based on common restaurant types
   const cuisineOptions = [
-    'Italian', 'Japanese', 'Indian', 'Chinese', 'Mexican', 
-    'American', 'Thai', 'French', 'Mediterranean', 'Korean',
-    'Vietnamese', 'Spanish', 'Greek', 'Lebanese', 'Turkish'
-  ];
+  'Afghani', 'African', 'American', 'Andhra', 'Arabian',
+  'Armenian', 'Asian', 'Assamese', 'Awadhi', 'BBQ',
+  'Bakery', 'Belgian', 'Bengali', 'Beverages', 'Bihari',
+  'Biryani', 'Burger', 'Cafe', 'Charcoal Grill', 'Chinese',
+  'Coffee', 'Continental', 'Desserts', 'European', 'Fast Food',
+  'Finger Food', 'French', 'German', 'Goan', 'Greek',
+  'Gujarati', 'Healthy Food', 'Hyderabadi', 'Ice Cream',
+  'Indian', 'International', 'Italian', 'Japanese', 'Juices',
+  'Kashmiri', 'Kebab', 'Kerala', 'Korean', 'Lebanese',
+  'Lucknowi', 'Maharashtrian', 'Malaysian', 'Mediterranean', 'Mexican',
+  'Middle Eastern', 'Mithai', 'Modern Indian', 'Momos', 'Mughlai',
+  'Nepalese', 'North Eastern', 'North Indian', 'Oriental', 'Paan',
+  'Pakistani', 'Pasta', 'Pizza', 'Portuguese', 'Punjabi',
+  'Rajasthani', 'Rolls', 'Salad', 'Sandwich', 'Seafood',
+  'South American', 'South Indian', 'Spanish', 'Sri Lankan', 'Steak',
+  'Street Food', 'Sushi', 'Tea', 'Tex-Mex', 'Thai',
+  'Tibetan', 'Turkish', 'Vietnamese'
+].sort();
+ // Sort alphabetically for better UX
 
   return (
     <div className="filter-section mb-4 p-4 bg-light rounded">
@@ -61,6 +82,16 @@ const SearchFilter = ({ onFilterChange, currentFilters, onClearFilters }) => {
               value={filters.search}
               onChange={handleChange}
             />
+            {filters.search && (
+              <button
+                className="btn btn-outline-secondary"
+                type="button"
+                onClick={() => removeFilter('search')}
+                title="Clear search"
+              >
+                ✕
+              </button>
+            )}
           </div>
         </div>
 
@@ -135,22 +166,38 @@ const SearchFilter = ({ onFilterChange, currentFilters, onClearFilters }) => {
             <div className="d-flex align-items-center gap-2 flex-wrap">
               <small className="text-muted">Active filters:</small>
               {filters.search && (
-                <span className="badge bg-primary">
+                <span 
+                  className="badge bg-primary cursor-pointer"
+                  onClick={() => removeFilter('search')}
+                  title="Click to remove"
+                >
                   Search: "{filters.search}" ✕
                 </span>
               )}
               {filters.cuisine && (
-                <span className="badge bg-success">
+                <span 
+                  className="badge bg-success cursor-pointer"
+                  onClick={() => removeFilter('cuisine')}
+                  title="Click to remove"
+                >
                   Cuisine: {filters.cuisine} ✕
                 </span>
               )}
               {filters.minRating && (
-                <span className="badge bg-warning text-dark">
+                <span 
+                  className="badge bg-warning text-dark cursor-pointer"
+                  onClick={() => removeFilter('minRating')}
+                  title="Click to remove"
+                >
                   Rating: {filters.minRating}+ ✕
                 </span>
               )}
               {filters.maxPrice && (
-                <span className="badge bg-info">
+                <span 
+                  className="badge bg-info cursor-pointer"
+                  onClick={() => removeFilter('maxPrice')}
+                  title="Click to remove"
+                >
                   Max: {'💲'.repeat(parseInt(filters.maxPrice))} ✕
                 </span>
               )}

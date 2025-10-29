@@ -15,42 +15,35 @@ const Restaurants = () => {
     search: "",
   });
 
-  // Load all restaurants on component mount
+  // 🔹 Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const restaurantsPerPage = 12;
+
+  // Load all restaurants on mount
   useEffect(() => {
     loadAllRestaurants();
   }, []);
 
-  // Filter restaurants whenever filters change
+  // Fetch filtered restaurants when filters change
   useEffect(() => {
-    filterRestaurants();
-  }, [filters, allRestaurants]);
+    fetchFilteredRestaurants();
+  }, [filters]);
 
+  // 🔹 Load all restaurants initially
   const loadAllRestaurants = async () => {
     try {
       setLoading(true);
       setError("");
-      
-      console.log("Loading all restaurants...");
-      const data = await getRestaurants();
-      console.log("API Response:", data);
-      
-      // Handle different response formats
-      const restaurantsArray = Array.isArray(data)
-        ? data
-        : Array.isArray(data.restaurants)
-        ? data.restaurants
-        : data && Array.isArray(data.data)
-        ? data.data
-        : [];
 
-      console.log("Processed restaurants:", restaurantsArray);
+      const data = await getRestaurants();
+      const restaurantsArray = data.restaurants || data.data || [];
+
       setAllRestaurants(restaurantsArray);
       setFilteredRestaurants(restaurantsArray);
-      
+      setCurrentPage(1); // reset to first page
     } catch (err) {
-      const errorMessage = err.message || "Failed to load restaurants";
-      setError(errorMessage);
       console.error("Error loading restaurants:", err);
+      setError(err.message || "Failed to load restaurants");
       setAllRestaurants([]);
       setFilteredRestaurants([]);
     } finally {
@@ -58,50 +51,27 @@ const Restaurants = () => {
     }
   };
 
-  const filterRestaurants = () => {
-    if (allRestaurants.length === 0) return;
+  // 🔹 Fetch filtered restaurants directly from backend
+  const fetchFilteredRestaurants = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-    let results = [...allRestaurants];
+      const data = await getRestaurants(filters);
+      const restaurantsArray = data.restaurants || data.data || [];
 
-    // Search filter
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
-      results = results.filter(restaurant => 
-        restaurant.name?.toLowerCase().includes(searchTerm) ||
-        restaurant.cuisine?.toLowerCase().includes(searchTerm) ||
-        restaurant.description?.toLowerCase().includes(searchTerm) ||
-        (restaurant.address?.city && restaurant.address.city.toLowerCase().includes(searchTerm)) ||
-        (restaurant.zomatoData?.locality && restaurant.zomatoData.locality.toLowerCase().includes(searchTerm))
-      );
+      setFilteredRestaurants(restaurantsArray);
+      setCurrentPage(1); // reset to first page after filter
+    } catch (err) {
+      console.error("Error fetching filtered restaurants:", err);
+      setError(err.message || "Failed to fetch filtered restaurants");
+      setFilteredRestaurants([]);
+    } finally {
+      setLoading(false);
     }
-
-    // Cuisine filter
-    if (filters.cuisine) {
-      results = results.filter(restaurant => 
-        restaurant.cuisine?.toLowerCase().includes(filters.cuisine.toLowerCase())
-      );
-    }
-
-    // Rating filter
-    if (filters.minRating > 0) {
-      results = results.filter(restaurant => 
-        (restaurant.rating || 0) >= parseFloat(filters.minRating)
-      );
-    }
-
-    // Price filter
-    if (filters.maxPrice < 5) {
-      results = results.filter(restaurant => 
-        (restaurant.priceLevel || 2) <= parseInt(filters.maxPrice)
-      );
-    }
-
-    console.log("Filtered results:", results.length);
-    setFilteredRestaurants(results);
   };
 
   const handleFilterChange = (newFilters) => {
-    console.log("Filters changed:", newFilters);
     setFilters(newFilters);
   };
 
@@ -114,6 +84,24 @@ const Restaurants = () => {
     });
   };
 
+  // 🔹 Pagination Logic
+  const indexOfLastRestaurant = currentPage * restaurantsPerPage;
+  const indexOfFirstRestaurant = indexOfLastRestaurant - restaurantsPerPage;
+  const currentRestaurants = filteredRestaurants.slice(
+    indexOfFirstRestaurant,
+    indexOfLastRestaurant
+  );
+
+  const totalPages = Math.ceil(filteredRestaurants.length / restaurantsPerPage);
+
+  const handlePageChange = (pageNumber) => {
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  // ✅ Fixed: Display message logic (accurate count)
   const getDisplayMessage = () => {
     if (loading) return null;
 
@@ -129,25 +117,30 @@ const Restaurants = () => {
       return "No restaurants found.";
     }
 
-    if (filters.search) {
-      return `Found ${filteredRestaurants.length} restaurant${
-        filteredRestaurants.length !== 1 ? "s" : ""
-      } for "${filters.search}"`;
-    }
+    const hasActiveFilters =
+      (filters.cuisine && filters.cuisine !== "") ||
+      filters.minRating > 0 ||
+      filters.maxPrice < 5 ||
+      (filters.search && filters.search.trim() !== "");
 
-    if (filters.cuisine || filters.minRating > 0 || filters.maxPrice < 5) {
-      return `Showing ${filteredRestaurants.length} of ${allRestaurants.length} restaurant${
-        allRestaurants.length !== 1 ? "s" : ""
+    if (hasActiveFilters) {
+      return `Showing ${currentRestaurants.length} of ${filteredRestaurants.length} restaurant${
+        filteredRestaurants.length !== 1 ? "s" : ""
       }`;
     }
 
-    return `Showing ${filteredRestaurants.length} restaurant${
-      filteredRestaurants.length !== 1 ? "s" : ""
+    return `Showing ${currentRestaurants.length} of ${allRestaurants.length} restaurant${
+      allRestaurants.length !== 1 ? "s" : ""
     }`;
   };
 
   const displayMessage = getDisplayMessage();
-  const hasActiveFilters = filters.search || filters.cuisine || filters.minRating > 0 || filters.maxPrice < 5;
+
+  const hasActiveFilters =
+    filters.search ||
+    filters.cuisine ||
+    filters.minRating > 0 ||
+    filters.maxPrice < 5;
 
   return (
     <div className="container mt-4">
@@ -157,7 +150,7 @@ const Restaurants = () => {
         </div>
       </div>
 
-      {/* Search and Filters Section */}
+      {/* Search and Filters */}
       <div className="row mb-4">
         <div className="col-12">
           <SearchFilter
@@ -168,7 +161,7 @@ const Restaurants = () => {
         </div>
       </div>
 
-      {/* Error Alert */}
+      {/* Error */}
       {error && (
         <div className="row mb-4">
           <div className="col-12">
@@ -183,7 +176,7 @@ const Restaurants = () => {
         </div>
       )}
 
-      {/* Loading State */}
+      {/* Loading */}
       {loading && (
         <div className="row">
           <div className="col-12 text-center py-5">
@@ -221,11 +214,11 @@ const Restaurants = () => {
       )}
 
       {/* Restaurants Grid */}
-      {!loading && filteredRestaurants.length > 0 && (
+      {!loading && currentRestaurants.length > 0 && (
         <div className="row">
-          {filteredRestaurants.map((restaurant) => (
+          {currentRestaurants.map((restaurant) => (
             <div
-              key={restaurant._id || restaurant.id}
+              key={restaurant._id || restaurant.restaurantId}
               className="col-lg-4 col-md-6 mb-4"
             >
               <RestaurantCard restaurant={restaurant} />
@@ -234,20 +227,48 @@ const Restaurants = () => {
         </div>
       )}
 
+      {/* Pagination Controls */}
+      {!loading && totalPages > 1 && (
+        <div className="row mt-4">
+          <div className="col-12 d-flex justify-content-center align-items-center gap-2">
+            <button
+              className="btn btn-outline-primary btn-sm"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              ← Previous
+            </button>
+
+            <span className="text-muted">
+              Page {currentPage} of {totalPages}
+            </span>
+
+            <button
+              className="btn btn-outline-primary btn-sm"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Next →
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Empty State */}
-      {!loading && filteredRestaurants.length === 0 && !error && (
+      {!loading && currentRestaurants.length === 0 && !error && (
         <div className="row">
           <div className="col-12 text-center py-5">
             <div className="empty-state">
               <i className="fas fa-utensils fa-3x text-muted mb-3"></i>
               <h4 className="text-muted">
-                {allRestaurants.length === 0 ? "No restaurants available" : "No restaurants found"}
+                {allRestaurants.length === 0
+                  ? "No restaurants available"
+                  : "No restaurants found"}
               </h4>
               <p className="text-muted">
-                {allRestaurants.length === 0 
-                  ? "There are no restaurants in the database." 
-                  : "Try adjusting your search criteria or filters"
-                }
+                {allRestaurants.length === 0
+                  ? "There are no restaurants in the database."
+                  : "Try adjusting your search criteria or filters"}
               </p>
               {hasActiveFilters && (
                 <button

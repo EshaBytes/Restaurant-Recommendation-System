@@ -1,62 +1,66 @@
 const mongoose = require('mongoose');
 
-const reviewSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+const reviewSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    restaurant: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Restaurant',
+      required: true,
+    },
+    rating: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 5,
+    },
+    comment: {
+      type: String,
+      required: true,
+      maxlength: 500,
+    },
   },
-  restaurant: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Restaurant',
-    required: true
-  },
-  rating: {
-    type: Number,
-    required: true,
-    min: 1,
-    max: 5
-  },
-  comment: {
-    type: String,
-    required: true,
-    maxlength: 500
+  {
+    timestamps: true,
   }
-}, {
-  timestamps: true
-});
+);
 
-// Prevent duplicate reviews from the same user
+// Prevent duplicate reviews per user-restaurant pair
 reviewSchema.index({ user: 1, restaurant: 1 }, { unique: true });
 
 // Static method to calculate average rating
-reviewSchema.statics.calcAverageRatings = async function(restaurantId) {
+reviewSchema.statics.calcAverageRatings = async function (restaurantId) {
   const stats = await this.aggregate([
-    {
-      $match: { restaurant: restaurantId }
-    },
+    { $match: { restaurant: restaurantId } },
     {
       $group: {
         _id: '$restaurant',
         nRating: { $sum: 1 },
-        avgRating: { $avg: '$rating' }
-      }
-    }
+        avgRating: { $avg: '$rating' },
+      },
+    },
   ]);
 
   if (stats.length > 0) {
     await mongoose.model('Restaurant').findByIdAndUpdate(restaurantId, {
-      rating: stats[0].avgRating
+      rating: stats[0].avgRating,
     });
   } else {
     await mongoose.model('Restaurant').findByIdAndUpdate(restaurantId, {
-      rating: 0
+      rating: 0,
     });
   }
 };
 
-// Update restaurant rating after saving a review
-reviewSchema.post('save', function() {
+// Update restaurant rating after save/delete
+reviewSchema.post('save', function () {
+  this.constructor.calcAverageRatings(this.restaurant);
+});
+reviewSchema.post('deleteOne', { document: true }, function () {
   this.constructor.calcAverageRatings(this.restaurant);
 });
 

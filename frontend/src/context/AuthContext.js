@@ -1,6 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { loginUser, registerUser } from '../utils/api'; // Import from utils/api
-import api from '../utils/api';
+import { loginUser, registerUser, setAuthToken, verifyToken } from '../utils/api';
 
 const AuthContext = createContext();
 
@@ -17,6 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Clear error after 5 seconds
   useEffect(() => {
     if (error) {
       const timer = setTimeout(() => setError(''), 5000);
@@ -24,6 +24,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, [error]);
 
+  // Check authentication status on app load
   useEffect(() => {
     checkAuthStatus();
   }, []);
@@ -31,18 +32,24 @@ export const AuthProvider = ({ children }) => {
   const checkAuthStatus = async () => {
     try {
       const token = localStorage.getItem('token');
-      const user = localStorage.getItem('user');
+      const storedUser = localStorage.getItem('user');
       
-      if (token && user) {
-        // Set authorization header for future requests
-        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        setCurrentUser(JSON.parse(user));
+      if (token && storedUser) {
+        setAuthToken(token);
+        
+        // Verify token with backend
+        try {
+          const response = await verifyToken();
+          setCurrentUser(response.user);
+        } catch (verifyError) {
+          console.error('Token verification failed:', verifyError);
+          // Token is invalid, clear storage
+          logout();
+        }
       }
     } catch (error) {
       console.error('Auth check error:', error);
-      // Clear invalid tokens
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      logout();
     } finally {
       setLoading(false);
     }
@@ -51,60 +58,112 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       setError('');
-      console.log('Attempting login with:', email);
+      setLoading(true);
+      console.log('🔄 Attempting login with:', email);
       
-      // Use the function from utils/api.js
       const response = await loginUser({ email, password });
-      console.log('Login response:', response);
+      console.log('✅ Login response:', response);
+      
+      // Validate response structure
+      if (!response.token || !response.user) {
+        throw new Error('Invalid response from server');
+      }
       
       const { token, user } = response;
       
+      // Create complete user object with preferences
+      const completeUser = {
+        id: user.id || user._id,
+        username: user.username,
+        email: user.email,
+        preferences: user.preferences || {
+          cuisines: [],
+          priceRange: { min: 0, max: 5000 },
+          allergies: [],
+          dietaryRestrictions: []
+        },
+        createdAt: user.createdAt || new Date().toISOString()
+      };
+      
       // Store token and user data
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('user', JSON.stringify(completeUser));
       
-      setCurrentUser(user);
+      // Set auth token for future requests
+      setAuthToken(token);
+      setCurrentUser(completeUser);
       
-      return { success: true, user };
+      // ✅ REMOVED: Don't redirect here - let the login component handle it
+      console.log('✅ Login successful, user data stored');
+      
+      return { success: true, user: completeUser };
     } catch (error) {
       const errorMessage = error.message || 'Login failed. Please check your credentials.';
       setError(errorMessage);
-      console.error('Login error:', error);
+      console.error('❌ Login error:', error);
       
       return { 
         success: false, 
         message: errorMessage 
       };
+    } finally {
+      setLoading(false);
     }
   };
 
   const register = async (userData) => {
     try {
       setError('');
-      console.log('Attempting registration with:', userData);
+      setLoading(true);
+      console.log('🔄 Attempting registration with:', userData);
       
-      // Use the function from utils/api.js
       const response = await registerUser(userData);
-      console.log('Registration response:', response);
+      console.log('✅ Registration response:', response);
+      
+      // Validate response structure
+      if (!response.token || !response.user) {
+        throw new Error('Invalid response from server');
+      }
       
       const { token, user } = response;
       
+      // Create complete user object with preferences
+      const completeUser = {
+        id: user.id || user._id,
+        username: user.username,
+        email: user.email,
+        preferences: user.preferences || {
+          cuisines: [],
+          priceRange: { min: 0, max: 5000 },
+          allergies: [],
+          dietaryRestrictions: []
+        },
+        createdAt: user.createdAt || new Date().toISOString()
+      };
+      
       // Store token and user data
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('user', JSON.stringify(completeUser));
       
-      setCurrentUser(user);
+      // Set auth token for future requests
+      setAuthToken(token);
+      setCurrentUser(completeUser);
       
-      return { success: true, user };
+      // ✅ REMOVED: Don't redirect here - let the register component handle it
+      console.log('✅ Registration successful, user data stored');
+      
+      return { success: true, user: completeUser };
     } catch (error) {
       const errorMessage = error.message || 'Registration failed. Please try again.';
       setError(errorMessage);
-      console.error('Registration error:', error);
+      console.error('❌ Registration error:', error);
       
       return { 
         success: false, 
         message: errorMessage 
       };
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -112,16 +171,34 @@ export const AuthProvider = ({ children }) => {
     try {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      setAuthToken(null);
       setCurrentUser(null);
-      console.log('Logout successful');
+      setError('');
+      console.log('✅ Logout successful');
+      
+      // Redirect to home page after logout
+      window.location.href = '/';
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('❌ Logout error:', error);
     }
   };
 
   const updateUser = (updatedUser) => {
-    setCurrentUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+    const mergedUser = {
+      ...currentUser,
+      ...updatedUser,
+      preferences: {
+        ...currentUser?.preferences,
+        ...updatedUser?.preferences
+      }
+    };
+    
+    setCurrentUser(mergedUser);
+    localStorage.setItem('user', JSON.stringify(mergedUser));
+  };
+
+  const clearError = () => {
+    setError('');
   };
 
   const value = {
@@ -131,7 +208,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     updateUser,
     error,
-    loading
+    loading,
+    clearError
   };
 
   return (

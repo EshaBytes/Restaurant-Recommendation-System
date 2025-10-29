@@ -1,148 +1,146 @@
-const mongoose = require('mongoose');
-const fs = require('fs');
-const csv = require('csv-parser');
-const Restaurant = require('./models/Restaurant');
-require('dotenv').config();
+const mongoose = require("mongoose");
+const fs = require("fs");
+const csv = require("csv-parser");
+const Restaurant = require("./models/Restaurant");
+require("dotenv").config();
 
 const seedFromCSV = async () => {
   try {
-    // Connect to MongoDB
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/restaurant-app');
-    console.log('Connected to MongoDB');
+    // 1️⃣ Connect to MongoDB
+    await mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/restaurant-app");
+    console.log("✅ Connected to MongoDB");
 
-    // Clear existing data
-    await Restaurant.deleteMany({});
-    console.log('Cleared existing restaurants');
+    const countBefore = await Restaurant.countDocuments();
+    console.log(`📊 Restaurants before seeding: ${countBefore}`);
 
     const restaurants = [];
     let rowCount = 0;
     let validCount = 0;
     let invalidCount = 0;
 
-    // Read and parse CSV file
-    fs.createReadStream('./data/restaurants.csv')
+    console.log("📖 Reading CSV file...");
+
+    fs.createReadStream("./data/restaurants.csv")
       .pipe(csv())
-      .on('data', (row) => {
+      .on("data", (row) => {
         rowCount++;
-        
         try {
-          // Validate required fields
-          const name = row['Restaurant Name'] || row['Restaurant Name'] || 'Unnamed Restaurant';
+          const name = row["Restaurant Name"]?.trim();
           const longitude = parseFloat(row.Longitude);
           const latitude = parseFloat(row.Latitude);
-          
-          // Skip if missing critical data
+
+          // Skip invalid entries
           if (!name || isNaN(longitude) || isNaN(latitude)) {
             invalidCount++;
             return;
           }
 
-          // Extract first cuisine (in case of multiple cuisines)
-          const cuisines = row.Cuisines ? row.Cuisines.split(',').map(c => c.trim()) : ['International'];
-          const primaryCuisine = cuisines.length > 0 ? cuisines[0] : 'International';
-          
-          // Generate description from available data
-          const description = `Located in ${row.Locality || row.City || 'unknown location'}. ${primaryCuisine} cuisine. ${row['Rating text'] ? `Rated: ${row['Rating text']}` : ''}`.trim();
+          // ✅ Parse cuisines as array
+          const cuisineArray = row.Cuisines
+            ? row.Cuisines.split(",").map((c) => c.trim()).filter((c) => c)
+            : ["International"];
 
-          // Map Zomato data to your schema
+          const primaryCuisine = cuisineArray[0];
+          const locality = row.Locality || row.City || "";
+          const ratingText = row["Rating text"] || "";
+          const description = `Located in ${locality}. ${primaryCuisine} cuisine.${ratingText ? ` Rated: ${ratingText}.` : ""}`.trim();
+
+          const priceRange = parseInt(row["Price range"]) || 2;
+          const priceLevel = priceRange >= 1 && priceRange <= 4 ? priceRange : 2;
+          const rating = parseFloat(row["Aggregate rating"]) || 0;
+
+          // ✅ Store cuisine as an array (final)
           const restaurant = {
-            name: name,
-            description: description,
-            cuisine: primaryCuisine,
+            name,
+            description,
+            cuisine: cuisineArray, // <-- array only
             address: {
-              street: row.Address || '',
-              city: row.City || '',
-              state: '', // Not in your CSV
-              zipCode: '' // Not in your CSV
+              street: row.Address || "",
+              city: row.City || "",
+              state: "",
+              zipCode: "",
             },
             location: {
-              type: 'Point',
-              coordinates: [longitude, latitude] // [longitude, latitude]
+              type: "Point",
+              coordinates: [longitude, latitude],
             },
-            priceLevel: parseInt(row['Price range']) || 2,
-            rating: parseFloat(row['Aggregate rating']) || 0,
-            image: 'default-restaurant.jpg',
-            phone: '',
-            website: ''
-          };
-
-          // Add additional fields from Zomato data
-          restaurant.zomatoData = {
-            restaurantId: row['Restaurant ID'] || '',
-            countryCode: row['Country Code'] || '',
-            locality: row.Locality || '',
-            localityVerbose: row['Locality Verbose'] || '',
-            cuisines: cuisines,
-            averageCostForTwo: parseInt(row['Average Cost for two']) || 0,
-            currency: row.Currency || 'USD',
-            hasTableBooking: row['Has Table booking'] === 'Yes',
-            hasOnlineDelivery: row['Has Online delivery'] === 'Yes',
-            isDeliveringNow: row['Is delivering now'] === 'Yes',
-            switchToOrderMenu: row['Switch to order menu'] === 'Yes',
-            ratingColor: row['Rating color'] || '',
-            ratingText: row['Rating text'] || '',
-            votes: parseInt(row.Votes) || 0
+            priceLevel,
+            rating,
+            image: "default-restaurant.jpg",
+            phone: "",
+            website: "",
+            zomatoData: {
+              restaurantId: row["Restaurant ID"] || "",
+              countryCode: row["Country Code"] || "",
+              locality: row.Locality || "",
+              localityVerbose: row["Locality Verbose"] || "",
+              cuisines: cuisineArray,
+              averageCostForTwo: parseInt(row["Average Cost for two"]) || 0,
+              currency: row.Currency || "USD",
+              hasTableBooking: row["Has Table booking"] === "Yes",
+              hasOnlineDelivery: row["Has Online delivery"] === "Yes",
+              isDeliveringNow: row["Is delivering now"] === "Yes",
+              switchToOrderMenu: row["Switch to order menu"] === "Yes",
+              ratingColor: row["Rating color"] || "",
+              ratingText,
+              votes: parseInt(row.Votes) || 0,
+            },
           };
 
           restaurants.push(restaurant);
           validCount++;
 
-          // Log progress every 1000 rows
           if (rowCount % 1000 === 0) {
-            console.log(`Processed ${rowCount} rows... (${validCount} valid, ${invalidCount} invalid)`);
+            console.log(`📊 Processed ${rowCount} rows... (${validCount} valid, ${invalidCount} invalid)`);
           }
         } catch (error) {
           invalidCount++;
-          console.log(`Error processing row ${rowCount}:`, error.message);
+          if (rowCount % 1000 === 0) {
+            console.log(`⚠️ Row ${rowCount} caused error:`, error.message);
+          }
         }
       })
-      .on('end', async () => {
+      .on("end", async () => {
         try {
-          console.log(`\nCSV processing complete:`);
-          console.log(`- Total rows: ${rowCount}`);
-          console.log(`- Valid restaurants: ${validCount}`);
-          console.log(`- Invalid rows: ${invalidCount}`);
-          
+          console.log(`\n📈 CSV Processing Complete:`);
+          console.log(`- Total rows processed: ${rowCount}`);
+          console.log(`- Valid: ${validCount}`);
+          console.log(`- Invalid: ${invalidCount}`);
+
           if (restaurants.length === 0) {
-            console.log('No valid restaurants to insert. Check your CSV file.');
+            console.log("❌ No valid restaurants to insert");
             process.exit(1);
           }
 
-          // Insert in batches to avoid memory issues
-          const batchSize = 500;
-          let insertedCount = 0;
-          
-          for (let i = 0; i < restaurants.length; i += batchSize) {
-            const batch = restaurants.slice(i, i + batchSize);
-            try {
-              await Restaurant.insertMany(batch, { ordered: false });
-              insertedCount += batch.length;
-              console.log(`Inserted batch ${Math.ceil((i + batchSize) / batchSize)}/${Math.ceil(restaurants.length / batchSize)} - Total: ${insertedCount}`);
-            } catch (batchError) {
-              console.log(`Some errors in batch ${Math.ceil((i + batchSize) / batchSize)}, but continuing...`);
-              // Continue with next batch even if some documents fail
-            }
-          }
-          
-          console.log(`\n✅ Successfully inserted ${insertedCount} restaurants from CSV`);
-          
-          // Create geospatial index
+          console.log(`🚀 Inserting ${restaurants.length} restaurants...`);
+          const result = await Restaurant.insertMany(restaurants, { ordered: false });
+          console.log(`✅ Inserted ${result.length} restaurants`);
+
+          // Ensure geospatial index exists
           await Restaurant.syncIndexes();
-          console.log('📍 Geospatial index created');
-          
+          console.log("📍 Geospatial index created");
+
+          const countAfter = await Restaurant.countDocuments();
+          console.log(`🎉 Seeding Complete! Total in DB: ${countAfter}`);
+
+          const sample = await Restaurant.find().limit(3);
+          console.log("\n📋 Sample Restaurants:");
+          sample.forEach((r, i) => {
+            console.log(` ${i + 1}. ${r.name} - ${r.cuisine?.join(", ")} (${r.rating}⭐)`);
+          });
+
           process.exit(0);
         } catch (error) {
-          console.error('Error inserting data:', error);
+          console.error("❌ Error inserting data:", error);
           process.exit(1);
         }
       })
-      .on('error', (error) => {
-        console.error('Error reading CSV file:', error);
+      .on("error", (error) => {
+        console.error("❌ Error reading CSV:", error);
         process.exit(1);
       });
-
   } catch (error) {
-    console.error('Database connection error:', error);
+    console.error("❌ Connection error:", error);
     process.exit(1);
   }
 };

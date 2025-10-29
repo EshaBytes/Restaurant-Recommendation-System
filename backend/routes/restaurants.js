@@ -1,20 +1,23 @@
 const express = require('express');
+const router = express.Router();
 const {
   getRestaurants,
   getRestaurant,
   createRestaurant,
   updateRestaurant,
-  deleteRestaurant
-} = require('../controllers/resturantControllers');
+  deleteRestaurant,
+  searchRestaurants,
+  getRecommendations
+} = require('../controllers/restaurantController'); // Make sure filename matches
 const { protect } = require('../middleware/auth');
-
-const router = express.Router();
 
 // Public routes
 router.get('/', getRestaurants);
+router.get('/search', searchRestaurants);
+router.get('/recommendations', getRecommendations);
 router.get('/:id', getRestaurant);
 
-// Protected routes (require authentication)
+// Protected routes
 router.post('/', protect, createRestaurant);
 router.put('/:id', protect, updateRestaurant);
 router.delete('/:id', protect, deleteRestaurant);

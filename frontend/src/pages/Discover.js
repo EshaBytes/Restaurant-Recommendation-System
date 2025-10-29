@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { searchRestaurants, getRecommendations } from '../utils/api';
+import { getRestaurants, getRecommendations } from '../utils/api';
 import RestaurantCard from '../components/RestaurantCard';
 import '../styles/Discover.css';
 
@@ -29,111 +29,29 @@ const Discover = ({ user }) => {
     try {
       setLoading(true);
       
-      // Mock data for trending restaurants
-      const mockTrending = [
-        {
-          restaurantId: 1,
-          name: "Burger Junction",
-          cuisines: ["American", "Burgers"],
-          locality: "West Village",
-          city: "New York",
-          aggregateRating: 4.4,
-          priceRange: 2,
-          averageCost: 1200,
-          currency: "₹",
-          trending: true,
-          image: "https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=400"
-        },
-        {
-          restaurantId: 2,
-          name: "Taco Fiesta",
-          cuisines: ["Mexican", "Latin American"],
-          locality: "Downtown",
-          city: "New York",
-          aggregateRating: 4.7,
-          priceRange: 2,
-          averageCost: 900,
-          currency: "₹",
-          trending: true,
-          image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400"
-        },
-        {
-          restaurantId: 3,
-          name: "Sushi Zen",
-          cuisines: ["Japanese", "Sushi"],
-          locality: "Midtown",
-          city: "New York",
-          aggregateRating: 4.8,
-          priceRange: 4,
-          averageCost: 2800,
-          currency: "₹",
-          trending: true,
-          image: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400"
-        },
-        {
-          restaurantId: 4,
-          name: "Spice Garden",
-          cuisines: ["Indian", "Asian"],
-          locality: "East Side",
-          city: "New York",
-          aggregateRating: 4.6,
-          priceRange: 3,
-          averageCost: 1500,
-          currency: "₹",
-          trending: true,
-          image: "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=400"
-        }
-      ];
-
-      // Mock data for featured restaurants
-      const mockFeatured = [
-        {
-          restaurantId: 5,
-          name: "Gusto Italiano",
-          cuisines: ["Italian", "Mediterranean"],
-          locality: "Downtown",
-          city: "New York",
-          aggregateRating: 4.8,
-          priceRange: 4,
-          averageCost: 2500,
-          currency: "₹",
-          featured: true,
-          image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400"
-        },
-        {
-          restaurantId: 6,
-          name: "Sakura Sushi",
-          cuisines: ["Japanese", "Sushi"],
-          locality: "Midtown",
-          city: "New York",
-          aggregateRating: 4.9,
-          priceRange: 5,
-          averageCost: 3500,
-          currency: "₹",
-          featured: true,
-          image: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400"
-        },
-        {
-          restaurantId: 7,
-          name: "Spice Route",
-          cuisines: ["Indian", "Asian"],
-          locality: "East Side",
-          city: "New York",
-          aggregateRating: 4.6,
-          priceRange: 3,
-          averageCost: 1800,
-          currency: "₹",
-          featured: true,
-          image: "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=400"
-        }
-      ];
-
-      setFeaturedRestaurants(mockFeatured);
-      setTrendingRestaurants(mockTrending);
+      // Use real API calls instead of mock data
+      const [recommendationsResponse, featuredResponse] = await Promise.all([
+        getRecommendations().catch(err => {
+          console.log('Recommendations endpoint not available, using fallback');
+          return getRestaurants({ limit: 8, sort: 'rating' });
+        }),
+        getRestaurants({ minRating: 4.0, limit: 6 })
+      ]);
+      
+      // Handle different response formats
+      const trending = recommendationsResponse.recommendations || recommendationsResponse.restaurants || recommendationsResponse.data || [];
+      const featured = featuredResponse.restaurants || featuredResponse.data || [];
+      
+      setFeaturedRestaurants(featured);
+      setTrendingRestaurants(trending);
       setCuisineCategories(cuisineOptions);
       
     } catch (error) {
       console.error('Error loading discover data:', error);
+      // Fallback to empty arrays
+      setFeaturedRestaurants([]);
+      setTrendingRestaurants([]);
+      setCuisineCategories(cuisineOptions);
     } finally {
       setLoading(false);
     }
@@ -142,12 +60,17 @@ const Discover = ({ user }) => {
   const filterByCuisine = (cuisineId) => {
     setSelectedCuisine(cuisineId);
     // In a real app, this would filter the restaurants
+    // For now, we'll just show a message
+    console.log(`Filtering by cuisine: ${cuisineId}`);
   };
 
   if (loading) {
     return (
       <div className="discover-container">
-        <div className="loading">Discovering amazing restaurants...</div>
+        <div className="loading">
+          <div className="loading-spinner"></div>
+          Discovering amazing restaurants...
+        </div>
       </div>
     );
   }
@@ -200,32 +123,44 @@ const Discover = ({ user }) => {
             <h2>Featured Restaurants</h2>
             <p>Handpicked selections for an exceptional dining experience</p>
           </div>
-          <div className="restaurants-grid">
-            {featuredRestaurants.map(restaurant => (
-              <RestaurantCard 
-                key={restaurant.restaurantId} 
-                restaurant={restaurant}
-                featured={true}
-              />
-            ))}
-          </div>
+          {featuredRestaurants.length > 0 ? (
+            <div className="restaurants-grid">
+              {featuredRestaurants.map(restaurant => (
+                <RestaurantCard 
+                  key={restaurant._id || restaurant.restaurantId} 
+                  restaurant={restaurant}
+                  featured={true}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <p>No featured restaurants available at the moment.</p>
+            </div>
+          )}
         </section>
 
-        {/* Trending Now Section - Fixed */}
+        {/* Trending Now Section */}
         <section className="trending-section">
           <div className="section-header">
             <h2>Trending Now</h2>
             <p>Currently popular spots loved by food enthusiasts</p>
           </div>
-          <div className="trending-grid">
-            {trendingRestaurants.map(restaurant => (
-              <RestaurantCard 
-                key={restaurant.restaurantId} 
-                restaurant={restaurant}
-                trending={true}
-              />
-            ))}
-          </div>
+          {trendingRestaurants.length > 0 ? (
+            <div className="trending-grid">
+              {trendingRestaurants.map(restaurant => (
+                <RestaurantCard 
+                  key={restaurant._id || restaurant.restaurantId} 
+                  restaurant={restaurant}
+                  trending={true}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <p>No trending restaurants available at the moment.</p>
+            </div>
+          )}
         </section>
 
         {/* Quick Filters */}

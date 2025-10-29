@@ -8,6 +8,7 @@ import RestaurantDetail from "./pages/RestaurantDetail";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
+import Favorites from './pages/Favourites';
 import Discover from "./pages/Discover";
 import ProtectedRoute from "./components/ProtectedRoute";
 import "./App.css";
@@ -27,6 +28,7 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/discover" element={<Discover />} />
+              <Route path="/favorites" element={<Favorites />} />
               <Route
                 path="/profile"
                 element={

@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 // Generate JWT Token
 const generateToken = (userId) => {
   return jwt.sign(
-    { userId },
+    { id: userId },
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
@@ -15,7 +15,6 @@ exports.register = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    // Validation
     if (!username || !email || !password) {
       return res.status(400).json({
         success: false,
@@ -30,7 +29,6 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Check if user already exists
     const existingUser = await User.findOne({
       $or: [{ email }, { username }]
     });
@@ -42,11 +40,9 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Create new user
     const user = new User({ username, email, password });
     await user.save();
 
-    // Generate token
     const token = generateToken(user._id);
 
     res.status(201).json({
@@ -58,7 +54,6 @@ exports.register = async (req, res) => {
         email: user.email
       }
     });
-
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({
@@ -73,7 +68,6 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validation
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -81,7 +75,6 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({
@@ -90,7 +83,6 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Check password
     const isPasswordValid = await user.correctPassword(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -99,7 +91,6 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Generate token
     const token = generateToken(user._id);
 
     res.json({
@@ -111,7 +102,6 @@ exports.login = async (req, res) => {
         email: user.email
       }
     });
-
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({
@@ -124,7 +114,7 @@ exports.login = async (req, res) => {
 // Get Current User
 exports.getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select('-password');
+    const user = await User.findById(req.user.id).select('-password');
     res.json({
       success: true,
       user
@@ -134,6 +124,23 @@ exports.getMe = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error'
+    });
+  }
+};
+
+// ✅ Logout User (added)
+exports.logout = async (req, res) => {
+  try {
+    // If JWT is stored client-side, just instruct to delete it
+    res.status(200).json({
+      success: true,
+      message: 'Logged out successfully'
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during logout'
     });
   }
 };

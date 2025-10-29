@@ -1,7 +1,8 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const User = require('../models/User');
-const { protect } = require('../middleware/auth'); // Import the middleware
+const { protect } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -10,69 +11,22 @@ router.post('/register', async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    // Validation
-    if (!username || !email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide username, email, and password'
-      });
-    }
+    let user = await User.findOne({ email });
+    if (user) return res.status(400).json({ message: 'User already exists' });
 
-    if (password.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password must be at least 6 characters long'
-      });
-    }
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ 
-      $or: [{ email }, { username }] 
-    });
-    
-    if (existingUser) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'User already exists with this email or username' 
-      });
-    }
-
-    // Create new user
-    const user = new User({ username, email, password });
+    user = new User({ username, email, password });
     await user.save();
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: user._id }, 
-      process.env.JWT_SECRET, 
-      { expiresIn: '7d' }
-    );
+    // ✅ Use "id" instead of "userId"
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
     res.status(201).json({
-      success: true,
+      message: 'User registered successfully',
       token,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email
-      }
+      user: { id: user._id, username: user.username, email: user.email },
     });
   } catch (error) {
-    console.error('Registration error:', error);
-    
-    // Handle validation errors
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(val => val.message);
-      return res.status(400).json({
-        success: false,
-        message: messages.join(', ')
-      });
-    }
-    
-    res.status(500).json({ 
-      success: false,
-      message: 'Server error during registration' 
-    });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
@@ -81,77 +35,39 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validation
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide email and password'
-      });
-    }
-
-    // Check if user exists
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ 
-        success: false,
-        message: 'Invalid credentials' 
-      });
-    }
+    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
-    // Check password
-    const isPasswordValid = await user.correctPassword(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ 
-        success: false,
-        message: 'Invalid credentials' 
-      });
-    }
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: user._id }, 
-      process.env.JWT_SECRET, 
-      { expiresIn: '7d' }
-    );
+    // ✅ Use "id" instead of "userId"
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-    res.json({
-      success: true,
+    res.status(200).json({
+      message: 'Login successful',
       token,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email
-      }
+      user: { id: user._id, username: user.username, email: user.email },
     });
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Server error during login' 
-    });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
-// Get current user (protected route using middleware)
+// Get logged-in user
 router.get('/me', protect, async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select('-password');
-    
-    res.json({
-      success: true,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email
-      }
-    });
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.status(200).json(user);
   } catch (error) {
-    console.error('Get user error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
+});
+
+// Logout
+router.post('/logout', (req, res) => {
+  res.status(200).json({ message: 'Logout successful' });
 });
 
 module.exports = router;

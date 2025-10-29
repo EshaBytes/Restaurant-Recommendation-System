@@ -1,18 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
-const Register = () => {
+const Signup = () => {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
     password: '',
     confirmPassword: ''
   });
-  const [error, setError] = useState('');
+
+  const [localError, setLocalError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+  const { register, currentUser, error: authError, clearError } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (currentUser) {
+      navigate('/'); // ✅ CHANGED: Redirect to root instead of /home
+    }
+  }, [currentUser, navigate]);
+
+  // Sync with AuthContext error
+  useEffect(() => {
+    if (authError) {
+      setLocalError(authError);
+    }
+  }, [authError]);
 
   const handleChange = (e) => {
     setFormData({
@@ -23,32 +38,39 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validation
+    if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
+      setLocalError('Please fill in all fields');
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
-      return setError('Passwords do not match');
+      setLocalError('Passwords do not match');
+      return;
     }
-    
+
     if (formData.password.length < 6) {
-      return setError('Password must be at least 6 characters long');
+      setLocalError('Password must be at least 6 characters long');
+      return;
     }
-    
+
     try {
-      setError('');
+      setLocalError('');
       setLoading(true);
-      
-      // Extract only the fields needed for registration
-      const { confirmPassword, ...registrationData } = formData;
-      const result = await register(registrationData);
-      
+      clearError();
+
+      const { confirmPassword, ...userData } = formData;
+      const result = await register(userData);
+
       if (result.success) {
-        navigate('/'); // Redirect to home on success
+        navigate('/'); // ✅ CHANGED: Redirect to root instead of /home
       } else {
-        setError(result.message);
+        setLocalError(result.message || 'Registration failed');
       }
     } catch (err) {
-      setError('Failed to create an account. Please try again.');
-      console.error('Registration error:', err);
+      console.error('Signup error:', err);
+      setLocalError('An unexpected error occurred');
     } finally {
       setLoading(false);
     }
@@ -58,63 +80,97 @@ const Register = () => {
     <div className="container mt-4">
       <div className="row justify-content-center">
         <div className="col-md-6">
-          <div className="card">
+          <div className="card shadow-sm">
             <div className="card-body">
               <h2 className="text-center mb-4">Sign Up</h2>
-              {error && <div className="alert alert-danger">{error}</div>}
+
+              {localError && (
+                <div className="alert alert-danger alert-dismissible fade show" role="alert">
+                  {localError}
+                  <button
+                    type="button"
+                    className="btn-close"
+                    onClick={() => setLocalError('')}
+                  ></button>
+                </div>
+              )}
+
               <form onSubmit={handleSubmit}>
                 <div className="mb-3">
                   <label className="form-label">Username</label>
                   <input
                     type="text"
-                    name="username"
                     className="form-control"
+                    name="username"
                     value={formData.username}
                     onChange={handleChange}
                     required
-                    minLength="3"
+                    disabled={loading}
                   />
                 </div>
+
                 <div className="mb-3">
                   <label className="form-label">Email</label>
                   <input
                     type="email"
-                    name="email"
                     className="form-control"
+                    name="email"
                     value={formData.email}
                     onChange={handleChange}
                     required
+                    disabled={loading}
                   />
                 </div>
+
                 <div className="mb-3">
                   <label className="form-label">Password</label>
                   <input
                     type="password"
-                    name="password"
                     className="form-control"
+                    name="password"
                     value={formData.password}
                     onChange={handleChange}
                     required
-                    minLength="6"
+                    disabled={loading}
                   />
                 </div>
+
                 <div className="mb-3">
                   <label className="form-label">Confirm Password</label>
                   <input
                     type="password"
-                    name="confirmPassword"
                     className="form-control"
+                    name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     required
+                    disabled={loading}
                   />
                 </div>
-                <button disabled={loading} type="submit" className="btn btn-primary w-100">
-                  {loading ? 'Creating Account...' : 'Sign Up'}
+
+                <button
+                  disabled={loading}
+                  type="submit"
+                  className="btn btn-primary w-100"
+                >
+                  {loading ? (
+                    <>
+                      <span
+                        className="spinner-border spinner-border-sm me-2"
+                        role="status"
+                      ></span>
+                      Creating Account...
+                    </>
+                  ) : (
+                    'Sign Up'
+                  )}
                 </button>
               </form>
+
               <div className="text-center mt-3">
-                Already have an account? <a href="/login">Log In</a>
+                <p>
+                  Already have an account? <Link to="/login">Log in</Link>
+                </p>
               </div>
             </div>
           </div>
@@ -124,4 +180,4 @@ const Register = () => {
   );
 };
 
-export default Register;
+export default Signup;
