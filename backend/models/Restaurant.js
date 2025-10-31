@@ -1,19 +1,12 @@
 const mongoose = require('mongoose');
 
 const restaurantSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  description: {
-    type: String,
-    required: true
-  },
-  cuisine: {
-    type: [String],
-    required: true
-  },
+  name: { type: String, required: true, trim: true },
+  description: { type: String, required: true },
+  cuisine: { type: [String], required: true },
+  
+  city: { type: String, trim: true },
+
   address: {
     street: String,
     city: String,
@@ -65,18 +58,25 @@ const restaurantSchema = new mongoose.Schema({
     ratingText: String,
     votes: Number
   }
-}, {
-  timestamps: true
-});
+}, { timestamps: true });
 
-// Create geospatial index for location-based queries
+
 restaurantSchema.index({ location: '2dsphere' });
 
-// Text index for better search performance
-restaurantSchema.index({ 
-  name: 'text', 
-  cuisine: 'text', 
-  description: 'text' 
+
+restaurantSchema.index({ name: 'text', cuisine: 'text', description: 'text' });
+
+
+restaurantSchema.index({ rating: -1 });
+restaurantSchema.index({ city: 1 });
+restaurantSchema.index({ priceLevel: 1 });
+
+
+restaurantSchema.pre('save', function (next) {
+  if (this.address && this.address.city) {
+    this.city = this.address.city;
+  }
+  next();
 });
 
 module.exports = mongoose.model('Restaurant', restaurantSchema);

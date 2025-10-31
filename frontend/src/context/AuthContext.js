@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Clear error after 5 seconds
+
   useEffect(() => {
     if (error) {
       const timer = setTimeout(() => setError(''), 5000);
@@ -24,36 +24,45 @@ export const AuthProvider = ({ children }) => {
     }
   }, [error]);
 
-  // Check authentication status on app load
+
   useEffect(() => {
     checkAuthStatus();
   }, []);
 
   const checkAuthStatus = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
-      
-      if (token && storedUser) {
-        setAuthToken(token);
-        
-        // Verify token with backend
-        try {
-          const response = await verifyToken();
-          setCurrentUser(response.user);
-        } catch (verifyError) {
-          console.error('Token verification failed:', verifyError);
-          // Token is invalid, clear storage
-          logout();
-        }
+  try {
+    const token = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+    
+    if (token && storedUser) {
+      setAuthToken(token);
+      const parsedUser = JSON.parse(storedUser);
+
+      try {
+        const response = await verifyToken();
+
+
+        const verifiedUser = {
+          ...parsedUser,
+          ...response.user,
+          role: response.user?.role || parsedUser.role || "user",
+        };
+
+        setCurrentUser(verifiedUser);
+        localStorage.setItem('user', JSON.stringify(verifiedUser));
+      } catch (verifyError) {
+        console.error('Token verification failed:', verifyError);
+        logout();
       }
-    } catch (error) {
-      console.error('Auth check error:', error);
-      logout();
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (error) {
+    console.error('Auth check error:', error);
+    logout();
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const login = async (email, password) => {
     try {
@@ -64,36 +73,35 @@ export const AuthProvider = ({ children }) => {
       const response = await loginUser({ email, password });
       console.log('✅ Login response:', response);
       
-      // Validate response structure
       if (!response.token || !response.user) {
         throw new Error('Invalid response from server');
       }
       
       const { token, user } = response;
       
-      // Create complete user object with preferences
+
       const completeUser = {
         id: user.id || user._id,
         username: user.username,
         email: user.email,
+        role: user.role || "user",
         preferences: user.preferences || {
           cuisines: [],
           priceRange: { min: 0, max: 5000 },
-          allergies: [],
-          dietaryRestrictions: []
+          location: "",
+          hasTableBooking: false,
+          hasOnlineDelivery: false,
+          isDeliveringNow: false
         },
         createdAt: user.createdAt || new Date().toISOString()
       };
       
-      // Store token and user data
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(completeUser));
       
-      // Set auth token for future requests
       setAuthToken(token);
       setCurrentUser(completeUser);
       
-      // ✅ REMOVED: Don't redirect here - let the login component handle it
       console.log('✅ Login successful, user data stored');
       
       return { success: true, user: completeUser };
@@ -102,10 +110,7 @@ export const AuthProvider = ({ children }) => {
       setError(errorMessage);
       console.error('❌ Login error:', error);
       
-      return { 
-        success: false, 
-        message: errorMessage 
-      };
+      return { success: false, message: errorMessage };
     } finally {
       setLoading(false);
     }
@@ -120,36 +125,35 @@ export const AuthProvider = ({ children }) => {
       const response = await registerUser(userData);
       console.log('✅ Registration response:', response);
       
-      // Validate response structure
       if (!response.token || !response.user) {
         throw new Error('Invalid response from server');
       }
       
       const { token, user } = response;
       
-      // Create complete user object with preferences
+
       const completeUser = {
         id: user.id || user._id,
         username: user.username,
         email: user.email,
+        role: user.role || "user",
         preferences: user.preferences || {
           cuisines: [],
           priceRange: { min: 0, max: 5000 },
-          allergies: [],
-          dietaryRestrictions: []
+          location: "",
+          hasTableBooking: false,
+          hasOnlineDelivery: false,
+          isDeliveringNow: false
         },
         createdAt: user.createdAt || new Date().toISOString()
       };
       
-      // Store token and user data
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(completeUser));
       
-      // Set auth token for future requests
       setAuthToken(token);
       setCurrentUser(completeUser);
       
-      // ✅ REMOVED: Don't redirect here - let the register component handle it
       console.log('✅ Registration successful, user data stored');
       
       return { success: true, user: completeUser };
@@ -158,10 +162,7 @@ export const AuthProvider = ({ children }) => {
       setError(errorMessage);
       console.error('❌ Registration error:', error);
       
-      return { 
-        success: false, 
-        message: errorMessage 
-      };
+      return { success: false, message: errorMessage };
     } finally {
       setLoading(false);
     }
@@ -175,8 +176,6 @@ export const AuthProvider = ({ children }) => {
       setCurrentUser(null);
       setError('');
       console.log('✅ Logout successful');
-      
-      // Redirect to home page after logout
       window.location.href = '/';
     } catch (error) {
       console.error('❌ Logout error:', error);
@@ -184,10 +183,20 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateUser = (updatedUser) => {
+    const defaultPreferences = {
+      cuisines: [],
+      priceRange: { min: 0, max: 5000 },
+      location: "",
+      hasTableBooking: false,
+      hasOnlineDelivery: false,
+      isDeliveringNow: false
+    };
+
     const mergedUser = {
       ...currentUser,
       ...updatedUser,
       preferences: {
+        ...defaultPreferences,
         ...currentUser?.preferences,
         ...updatedUser?.preferences
       }

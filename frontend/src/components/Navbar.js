@@ -11,16 +11,17 @@ import {
   FiX,
   FiSearch,
 } from "react-icons/fi";
-import { MdRestaurant } from "react-icons/md";
 import "../styles/Navbar.css";
 
 const Navbar = () => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+
   const userMenuRef = useRef(null);
   const userTriggerRef = useRef(null);
 
@@ -70,7 +71,6 @@ const Navbar = () => {
   const handleProfile = () => {
     setIsUserMenuOpen(false);
     setIsMenuOpen(false);
-
     setTimeout(() => {
       navigate("/profile");
     }, 100);
@@ -95,99 +95,111 @@ const Navbar = () => {
     { path: "/discover", icon: "/icons/discover.png", label: "Discover" },
   ];
 
-  // Get user display name safely
+
   const getUserDisplayName = () => {
     if (!currentUser) return "User";
-
     return (
       currentUser.username || currentUser.name || currentUser.email || "User"
     );
   };
 
-  // Get user avatar initial safely
+
   const getUserAvatarInitial = () => {
     if (!currentUser) return "U";
-
     const initial =
       currentUser.username?.charAt(0)?.toUpperCase() ||
       currentUser.name?.charAt(0)?.toUpperCase() ||
       currentUser.email?.charAt(0)?.toUpperCase() ||
       "U";
-
     return initial;
   };
 
   return (
     <nav className={`navbar ${isScrolled ? "scrolled" : ""}`}>
-  <div className="nav-container">
-    
-    {/* LEFT: Logo */}
-    <Link to="/" className="nav-logo" onClick={() => setIsMenuOpen(false)}>
-      <div className="logo-icon">
-        <img src="logo.png" alt="খা.AI Logo" />
-      </div>
-      <span className="logo-text">খা.AI</span>
-    </Link>
+      <div className="nav-container">
 
-    {/* CENTER: Navigation Links */}
-    <div className="nav-links">
-      {navLinks.map((link) => (
-        <Link
-          key={link.path}
-          to={link.path}
-          className={`nav-link ${isActiveLink(link.path) ? "active" : ""}`}
-          onClick={() => setIsMenuOpen(false)}
-        >
-          <img src={link.icon} alt={link.label} className="nav-icon-img" />
-          <span className="nav-label">{link.label}</span>
+        <Link to="/" className="nav-logo" onClick={() => setIsMenuOpen(false)}>
+          <div className="logo-icon">
+            <img src="logo.png" alt="খা.AI Logo" />
+          </div>
+          <span className="logo-text">খা.AI</span>
         </Link>
-      ))}
-    </div>
 
-    {/* RIGHT: Auth / User Section */}
-    <div className="nav-actions">
-      {currentUser ? (
-        <div className="user-section">
-          <div
-            ref={userTriggerRef}
-            className="user-trigger"
-            onClick={toggleUserMenu}
-          >
-            <div className="user-avatar">{getUserAvatarInitial()}</div>
-            <span className="user-name">{getUserDisplayName()}</span>
-            <div className={`chevron ${isUserMenuOpen ? "open" : ""}`}>▼</div>
-          </div>
 
-          <div
-            ref={userMenuRef}
-            className={`dropdown-menu ${isUserMenuOpen ? "show" : ""}`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button onClick={handleProfile} className="dropdown-item">
-              <FiUser className="dropdown-icon" />
-              <span>Profile</span>
-            </button>
-            <div className="dropdown-divider"></div>
-            <button onClick={handleLogout} className="dropdown-item logout">
-              <FiLogOut className="dropdown-icon" />
-              <span>Logout</span>
-            </button>
-          </div>
+        <div className="nav-links">
+          {navLinks.map((link) => (
+            <Link
+              key={link.path}
+              to={link.path}
+              className={`nav-link ${isActiveLink(link.path) ? "active" : ""}`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <img src={link.icon} alt={link.label} className="nav-icon-img" />
+              <span className="nav-label">{link.label}</span>
+            </Link>
+          ))}
         </div>
-      ) : (
-        <div className="auth-buttons">
-          <button onClick={handleLogin} className="auth-btn login-btn">
-            Login
-          </button>
-          <button onClick={handleSignup} className="auth-btn signup-btn">
-            Sign Up
-          </button>
-        </div>
-      )}
-    </div>
-  </div>
-</nav>
 
+
+        <div className="nav-actions">
+          {currentUser ? (
+            <div className="user-section">
+              <div
+                ref={userTriggerRef}
+                className="user-trigger"
+                onClick={toggleUserMenu}
+              >
+                <div className="user-avatar">{getUserAvatarInitial()}</div>
+                <span className="user-name">{getUserDisplayName()}</span>
+                <div className={`chevron ${isUserMenuOpen ? "open" : ""}`}>
+                  ▼
+                </div>
+              </div>
+
+              <div
+                ref={userMenuRef}
+                className={`dropdown-menu ${isUserMenuOpen ? "show" : ""}`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {currentUser?.role === "admin" ? (
+                  <button
+                    onClick={() => {
+                      setIsUserMenuOpen(false);
+                      setIsMenuOpen(false);
+                      navigate("/admin/dashboard");
+                    }}
+                    className="dropdown-item"
+                  >
+                    <FiUser className="dropdown-icon" />
+                    <span>Dashboard</span>
+                  </button>
+                ) : (
+                  <button onClick={handleProfile} className="dropdown-item">
+                    <FiUser className="dropdown-icon" />
+                    <span>Profile</span>
+                  </button>
+                )}
+
+                <div className="dropdown-divider"></div>
+                <button onClick={handleLogout} className="dropdown-item logout">
+                  <FiLogOut className="dropdown-icon" />
+                  <span>Logout</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="auth-buttons">
+              <button onClick={handleLogin} className="auth-btn login-btn">
+                Login
+              </button>
+              <button onClick={handleSignup} className="auth-btn signup-btn">
+                Sign Up
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </nav>
   );
 };
 

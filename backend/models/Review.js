@@ -29,10 +29,8 @@ const reviewSchema = new mongoose.Schema(
   }
 );
 
-// Prevent duplicate reviews per user-restaurant pair
 reviewSchema.index({ user: 1, restaurant: 1 }, { unique: true });
 
-// Static method to calculate average rating
 reviewSchema.statics.calcAverageRatings = async function (restaurantId) {
   const stats = await this.aggregate([
     { $match: { restaurant: restaurantId } },
@@ -56,7 +54,6 @@ reviewSchema.statics.calcAverageRatings = async function (restaurantId) {
   }
 };
 
-// Update restaurant rating after save/delete
 reviewSchema.post('save', function () {
   this.constructor.calcAverageRatings(this.restaurant);
 });

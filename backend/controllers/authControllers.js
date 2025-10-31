@@ -1,16 +1,14 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
-// Generate JWT Token
-const generateToken = (userId) => {
+const generateToken = (userId, role) => {
   return jwt.sign(
-    { id: userId },
+    { id: userId, role }, 
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
 };
 
-// Register User
 exports.register = async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -40,10 +38,13 @@ exports.register = async (req, res) => {
       });
     }
 
-    const user = new User({ username, email, password });
+    const userCount = await User.countDocuments();
+    const role = userCount === 0 ? 'admin' : 'user';
+
+    const user = new User({ username, email, password, role });
     await user.save();
 
-    const token = generateToken(user._id);
+    const token = generateToken(user._id, user.role);
 
     res.status(201).json({
       success: true,
@@ -51,7 +52,8 @@ exports.register = async (req, res) => {
       user: {
         id: user._id,
         username: user.username,
-        email: user.email
+        email: user.email,
+        role: user.role
       }
     });
   } catch (error) {
@@ -63,7 +65,6 @@ exports.register = async (req, res) => {
   }
 };
 
-// Login User
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -91,7 +92,7 @@ exports.login = async (req, res) => {
       });
     }
 
-    const token = generateToken(user._id);
+    const token = generateToken(user._id, user.role);
 
     res.json({
       success: true,
@@ -99,7 +100,8 @@ exports.login = async (req, res) => {
       user: {
         id: user._id,
         username: user.username,
-        email: user.email
+        email: user.email,
+        role: user.role
       }
     });
   } catch (error) {
@@ -111,13 +113,26 @@ exports.login = async (req, res) => {
   }
 };
 
-// Get Current User
+
 exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
     res.json({
       success: true,
-      user
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role 
+      }
     });
   } catch (error) {
     console.error('Get user error:', error);
@@ -128,10 +143,8 @@ exports.getMe = async (req, res) => {
   }
 };
 
-// ✅ Logout User (added)
 exports.logout = async (req, res) => {
   try {
-    // If JWT is stored client-side, just instruct to delete it
     res.status(200).json({
       success: true,
       message: 'Logged out successfully'
@@ -142,5 +155,36 @@ exports.logout = async (req, res) => {
       success: false,
       message: 'Server error during logout'
     });
+  }
+};
+
+exports.verifyToken = async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, message: 'No token provided' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await User.findById(decoded.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('Verify token error:', error);
+    res.status(401).json({ success: false, message: 'Invalid or expired token' });
   }
 };

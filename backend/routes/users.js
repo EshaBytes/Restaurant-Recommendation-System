@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/auth');
+
+const { protect, adminOnly } = require('../middleware/auth');
 const {
   getUserProfile,
   updateUserProfile,
@@ -8,23 +9,40 @@ const {
   addFavorite,
   removeFavorite,
 } = require('../controllers/userController');
+const User = require('../models/User');
 
-// ✅ Test route to verify user token
+
 router.get('/test', protect, (req, res) => {
   res.json({ success: true, user: req.user });
 });
 
 router.get('/profile', protect, getUserProfile);
+
 router.put('/profile', protect, updateUserProfile);
 
-// ✅ Favorites routes
 router.get('/favorites', protect, getFavorites);
 
-// ✅ 1️⃣ Add this to match frontend POST /api/users/favorites (body: { restaurantId })
-router.post('/favorites', protect, addFavorite);
-
-// ✅ 2️⃣ Keep your existing route for URL param version
 router.post('/favorites/:restaurantId', protect, addFavorite);
+
 router.delete('/favorites/:restaurantId', protect, removeFavorite);
+
+router.put('/:id', protect, adminOnly, async (req, res) => {
+  try {
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      { $set: req.body },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json(updatedUser);
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 module.exports = router;

@@ -1,9 +1,6 @@
 const Review = require('../models/Review');
 const Restaurant = require('../models/Restaurant');
 
-// @desc    Get all reviews for a specific restaurant
-// @route   GET /api/reviews/:restaurantId
-// @access  Public
 const getReviews = async (req, res) => {
   try {
     const reviews = await Review.find({ restaurant: req.params.restaurantId })
@@ -16,9 +13,6 @@ const getReviews = async (req, res) => {
   }
 };
 
-// @desc    Create a review for a specific restaurant
-// @route   POST /api/reviews/:restaurantId
-// @access  Private
 const createReview = async (req, res) => {
   try {
     const { rating, comment } = req.body;
@@ -41,15 +35,12 @@ const createReview = async (req, res) => {
   }
 };
 
-// @desc    Update a review
-// @route   PUT /api/reviews/:reviewId
-// @access  Private
+
 const updateReview = async (req, res) => {
   try {
     const review = await Review.findById(req.params.reviewId);
     if (!review) return res.status(404).json({ success: false, message: 'Review not found' });
 
-    // Ensure the logged-in user owns the review
     if (review.user.toString() !== req.user.id)
       return res.status(403).json({ success: false, message: 'Unauthorized' });
 
@@ -63,9 +54,6 @@ const updateReview = async (req, res) => {
   }
 };
 
-// @desc    Delete a review
-// @route   DELETE /api/reviews/:reviewId
-// @access  Private
 const deleteReview = async (req, res) => {
   try {
     const review = await Review.findById(req.params.reviewId);

@@ -1,4 +1,4 @@
-// src/pages/Favorites.js
+
 import React, { useEffect, useState } from 'react';
 import { getFavorites, removeFavorite } from '../utils/api';
 import { Card, Button, Spinner, Container, Row, Col } from 'react-bootstrap';
