@@ -9,7 +9,6 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const { currentUser, logout } = useAuth();
 
-
   const [restaurants, setRestaurants] = useState([]);
   const [newRestaurant, setNewRestaurant] = useState({
     name: "",
@@ -26,7 +25,6 @@ const AdminDashboard = () => {
 
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-
 
   const fetchRestaurants = async (p = page) => {
     try {
@@ -49,7 +47,6 @@ const AdminDashboard = () => {
       toast.error("Failed to load restaurants!");
     }
   };
-
 
   const searchRestaurants = async (query) => {
     try {
@@ -75,7 +72,6 @@ const AdminDashboard = () => {
     }
   };
 
-
   useEffect(() => {
     if (!currentUser) return;
     if (currentUser.role !== "admin") {
@@ -84,14 +80,12 @@ const AdminDashboard = () => {
       return;
     }
 
-
     if (debouncedSearch) {
       searchRestaurants(debouncedSearch);
     } else {
       fetchRestaurants(page);
     }
   }, [page, currentUser, debouncedSearch, navigate]);
-
 
   const handleAdd = async () => {
     if (
@@ -124,7 +118,7 @@ const AdminDashboard = () => {
           rating: "",
           image: "",
         });
-        fetchRestaurants(); 
+        fetchRestaurants();
       } else {
         toast.error(res.data.message || "Error adding restaurant");
       }
@@ -134,19 +128,24 @@ const AdminDashboard = () => {
     }
   };
 
-
   const handleEdit = (restaurant) => {
     setEditingRestaurant(restaurant);
     setNewRestaurant({
       ...restaurant,
+      address:
+        typeof restaurant.address === "object"
+          ? restaurant.address.street ||
+            restaurant.address.full ||
+            JSON.stringify(restaurant.address)
+          : restaurant.address || "",
       city:
+        restaurant.city ||
         restaurant.address?.city ||
         restaurant.zomatoData?.locality ||
         "",
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
-
 
   const handleUpdate = async () => {
     try {
@@ -177,7 +176,6 @@ const AdminDashboard = () => {
     }
   };
 
-
   const handleDelete = async (id) => {
     try {
       await axios.delete(`http://localhost:5000/api/admin/restaurants/${id}`, {
@@ -207,7 +205,6 @@ const AdminDashboard = () => {
           Logout
         </button>
       </div>
-
 
       <div className="card mb-4">
         <div className="card-header">
@@ -254,7 +251,6 @@ const AdminDashboard = () => {
           )}
         </div>
       </div>
-
 
       <div className="card">
         <div className="card-header">
@@ -317,7 +313,6 @@ const AdminDashboard = () => {
               </tbody>
             </table>
           )}
-
 
           <div className="d-flex justify-content-center mt-3">
             <button

@@ -252,7 +252,7 @@ export const getFavorites = async () => {
 
 export const addFavorite = async (restaurantId) => {
   try {
-    const response = await api.post('/users/favorites/${restaurantId}', { restaurantId });
+    const response = await api.post(`/users/favorites/${restaurantId}`, { restaurantId });
     toast.success('Added to favorites ❤️');
     return response.data;
   } catch (error) {

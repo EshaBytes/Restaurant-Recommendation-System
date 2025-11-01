@@ -133,9 +133,14 @@ exports.addFavorite = async (req, res) => {
     if (!user)
       return res.status(404).json({ success: false, message: "User not found" });
 
+    // Ensure favorites is a valid array
     if (!Array.isArray(user.favorites)) user.favorites = [];
 
-    if (user.favorites.some((f) => f.toString() === restaurantId)) {
+    // 🧼 Remove null/undefined values to prevent crashes
+    user.favorites = user.favorites.filter(Boolean);
+
+    // ✅ Safe comparison with null check
+    if (user.favorites.some((f) => f && f.toString() === restaurantId)) {
       return res.status(400).json({
         success: false,
         message: "Restaurant already in favorites",
@@ -160,6 +165,8 @@ exports.addFavorite = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+
 
 exports.removeFavorite = async (req, res) => {
   try {
