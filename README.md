@@ -1,5 +1,6 @@
 # 🍽️ খা.AI / Kha.AI — Restaurant Recommendation App  
 
+
 ---
 
 ## 🧠 Overview  
@@ -35,7 +36,7 @@ Users can also **favorite restaurants**, view details, and explore personalized 
 ---
 
 ## 📂 Folder Structure  
-restaurant-recommendation-app/
+<pre> <code>restaurant-recommendation-app/
 ├── backend/
 │ ├── config/
 │ │ ├── database.js
@@ -95,7 +96,7 @@ restaurant-recommendation-app/
 │ │ ├── App.js
 │ │ ├── index.js
 │
-└── README.md
+└── README.md</code> </pre>
 
 
 ## ⚙️ Installation & Setup  
@@ -114,7 +115,7 @@ cd backend
 npm install
 ```
 
-Backend
+Frontend
 
 ```bash
 cd ../frontend
@@ -136,22 +137,38 @@ cd backend
 npm run dev
 ```
 
-Run backend
+Run frontend
 ```bash
 cd frontend
 npm start
 ```
 ## 🖥️ Screenshots
-<img width="1920" height="1080" alt="Screenshot (555)" src="https://github.com/user-attachments/assets/5b99c81c-a872-44de-8235-42582e608f4c" />
-<img width="1920" height="1080" alt="Screenshot (556)" src="https://github.com/user-attachments/assets/180e396d-47fe-488c-b9eb-ae209d4fe6b9" />
-<img width="1920" height="1080" alt="Screenshot (557)" src="https://github.com/user-attachments/assets/88605554-caae-4fcd-863d-58c96e719f09" />
-<img width="1920" height="1080" alt="Screenshot (558)" src="https://github.com/user-attachments/assets/1fe0dfb7-244a-4513-a815-20a943f1582a" />
-<img width="1920" height="1080" alt="Screenshot (559)" src="https://github.com/user-attachments/assets/19c89029-576a-40cf-8833-67af87606e9f" />
-<img width="1920" height="1080" alt="Screenshot (560)" src="https://github.com/user-attachments/assets/184041e8-9a4a-4a0f-b421-d6be44442e45" />
-<img width="1920" height="1080" alt="Screenshot (561)" src="https://github.com/user-attachments/assets/9781cf3b-26e7-4ebf-b57a-fd25a99c91d6" />
-<img width="1920" height="1080" alt="Screenshot (562)" src="https://github.com/user-attachments/assets/ad3b805e-8050-481a-b27c-0ca0f08f4f80" />
-<img width="1920" height="1080" alt="Screenshot (563)" src="https://github.com/user-attachments/assets/9dd0aff6-ed1d-4fd4-8188-657fcfdd1012" />
-<img width="1920" height="1080" alt="Screenshot (564)" src="https://github.com/user-attachments/assets/01d86605-cd72-4071-8848-880106d0d201" />
-<img width="1920" height="1080" alt="Screenshot (565)" src="https://github.com/user-attachments/assets/4030287f-6afc-4464-8473-dc120ef4fe40" />
-<img width="1920" height="1080" alt="Screenshot (554)" src="https://github.com/user-attachments/assets/900ab2c5-66ce-4d4c-9a85-44cc64f93e5f" />
+Home page
+<img width="1920" height="1080" alt="Screenshot (554)" src="https://github.com/user-attachments/assets/abe317f6-bbf8-44b7-88fa-f5a782435e9e" />
+
+Login
+<img width="1920" height="1080" alt="Screenshot (555)" src="https://github.com/user-attachments/assets/6ffcc989-8dfa-4de0-ae1e-283a040cf3e6" />
+
+Sign Up
+<img width="1920" height="1080" alt="Screenshot (541)" src="https://github.com/user-attachments/assets/b56bc0a8-f22b-4965-823b-6113841cd6df" />
+
+Profile/Preferences
+<img width="1920" height="1080" alt="Screenshot (557)" src="https://github.com/user-attachments/assets/0e9d985f-5e17-4e26-8361-8ddeb2444dfc" />
+
+Profile/Favorites
+<img width="1920" height="1080" alt="Screenshot (558)" src="https://github.com/user-attachments/assets/b9846923-7b76-435b-a714-1412e3a6060f" />
+
+Restaurants
+<img width="1920" height="1080" alt="Screenshot (561)" src="https://github.com/user-attachments/assets/080f01d6-ff5a-499f-91de-9c35761ace5d" />
+
+Restaurant Details
+<img width="1920" height="1080" alt="Screenshot (562)" src="https://github.com/user-attachments/assets/6224231e-2e9f-464e-b6df-d4f104e3a0bd" />
+<img width="1920" height="1080" alt="Screenshot (563)" src="https://github.com/user-attachments/assets/64345d9e-ad49-43a3-a4d8-93007bf3c72d" />
+
+Discover
+<img width="1920" height="1080" alt="Screenshot (564)" src="https://github.com/user-attachments/assets/38dcec71-2249-481b-a45a-988258d62575" />
+<img width="1920" height="1080" alt="Screenshot (565)" src="https://github.com/user-attachments/assets/ec6537b0-6e73-4ed6-a09e-5df4f116b855" />
+
+Admin Dashboard
+<img width="1920" height="1080" alt="Screenshot (566)" src="https://github.com/user-attachments/assets/4ddfe27a-e138-415f-9df1-11250dc95495" />
 
