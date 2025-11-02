@@ -60,6 +60,7 @@ const Login = () => {
     <div
       style={{
         backgroundImage: "url('/login&signup.jpg')",
+        backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
         minHeight: "100vh",
@@ -69,14 +70,13 @@ const Login = () => {
         fontFamily: "'Poppins', sans-serif",
       }}
     >
-
       <div
         style={{
           backgroundColor: "white",
           borderRadius: "25px",
           padding: "4rem 3rem",
           width: "95%",
-          maxWidth: "520px", 
+          maxWidth: "520px",
           boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
           transition: "transform 0.3s ease",
         }}
@@ -101,7 +101,9 @@ const Login = () => {
             color: "#4E342E",
             fontSize: "1rem",
           }}
-        > Your cravings 🍴 Our intelligence 🤖 
+        >
+          {" "}
+          Your cravings 🍴 Our intelligence 🤖
         </p>
         <p
           style={{
@@ -110,7 +112,7 @@ const Login = () => {
             marginBottom: "2rem",
             fontSize: "1rem",
           }}
-        > 
+        >
           Login to discover your next favorite meal!
         </p>
 
@@ -198,7 +200,10 @@ const Login = () => {
         <div className="text-center mt-3">
           <p style={{ color: "#4E342E", fontSize: "0.95rem" }}>
             Don’t have an account?{" "}
-            <Link to="/register" style={{ color: "#FF6F00", fontWeight: "600" }}>
+            <Link
+              to="/register"
+              style={{ color: "#FF6F00", fontWeight: "600" }}
+            >
               Sign up
             </Link>
           </p>
